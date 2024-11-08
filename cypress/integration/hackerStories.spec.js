@@ -29,11 +29,11 @@ describe('Hacker Stories', () => {
         }
       }).as('getpage1')
 
-      cy.contains('More').click()
+      cy.contains('More').should('be.visible').click()
 
       cy.wait('@getpage1')
 
-      cy.get('.item').should('have.length', 40)
+      cy.get('.item').should('be.visible').should('have.length', 40)
     })
 
     it('searches via the last searched term', () => {
@@ -42,11 +42,12 @@ describe('Hacker Stories', () => {
         `**/search?query=${newTerm}&page=0`)
         .as('getnewsearch')
 
-      cy.get('#search')
+      cy.get('#search').should('be.visible')
         .clear()
         .type(`${newTerm}{enter}`)
 
       cy.wait('@getnewsearch')
+      cy.getLocalStorage('search').should('be.equal', newTerm)
 
       cy.get(`button:contains(${initialTerm})`)
         .should('be.visible')
@@ -54,9 +55,12 @@ describe('Hacker Stories', () => {
 
       cy.wait('@getvisit')
 
+      cy.getLocalStorage('search').should('be.equal', initialTerm)
+
       cy.get('.item').should('have.length', 20)
       cy.get('.item')
         .first()
+        .should('be.visible')
         .should('contain', initialTerm)
       cy.get(`button:contains(${newTerm})`)
         .should('be.visible')
@@ -67,88 +71,138 @@ describe('Hacker Stories', () => {
     context('Footer and list of stories', () => {
       beforeEach(() => {
         cy.intercept(
-          'GET', 
+          'GET',
           `**/search?query=${initialTerm}&page=0`,
           { fixture: 'stories' }
-  
+
         ).as('getvisit')
-  
+
         cy.visit('/')
         cy.wait('@getvisit')
       })
-  
+
       it('shows the footer', () => {
         cy.get('footer')
           .should('be.visible')
           .and('contain', 'Icons made by Freepik from www.flaticon.com')
       })
-  
-      context('List of stories', () => {
-         it.only('shows the right data for all rendered stories', () => {
-          const stories =  require('../../fixtures/stories.json')
-          cy.get('.item')
-          .first()
-          .should('contain', stories.hits[0].title)
-          .and('contain', stories.hits[0].author)
-          .and('contain', stories.hits[0].num_comment)
-          .and('contain', stories.hits[0].points)
-          cy.get(`.item a:constains(${stories.hits[0].title})`)
-          .should('have.attr', 'href', stories.hits[0].url)
 
-          cy.get('.item')
-          .last()
-          .should('contain', stories.hits[1].title)
-          .and('contain', stories.hits[1].author)
-          .and('contain', stories.hits[1].num_comment)
-          .and('contain', stories.hits[1].points)
-          cy.get(`.item a:constains(${stories.hits[1].title})`)
-          .should('have.attr', 'href', stories.hits[1].url)
-        })
-  
-        it('shows only one less story after dimissing the first story', () => {
-          cy.get('.button-small')
+      context('List of stories', () => {
+        const stories = require('../fixtures/stories.json')
+        it('shows the right data for all rendered stories', () => {
+
+          cy.get('.item').should('be.visible')
             .first()
+            .should('be.visible')
+            .should('contain', stories.hits[0].title)
+            .and('contain', stories.hits[0].author)
+            .and('contain', stories.hits[0].num_comments)
+            .and('contain', stories.hits[0].points)
+          cy.get(`.item a:contains(${stories.hits[0].title})`)
+            .should('have.attr', 'href', stories.hits[0].url)
+
+          cy.get('.item').should('be.visible')
+            .last()
+            .should('contain', stories.hits[1].title)
+            .and('contain', stories.hits[1].author)
+            .and('contain', stories.hits[1].num_comments)
+            .and('contain', stories.hits[1].points)
+          cy.get(`.item a:contains(${stories.hits[1].title})`)
+            .should('have.attr', 'href', stories.hits[1].url)
+        })
+
+        it('shows only one less story after dimissing the first story', () => {
+          cy.get('.button-small').should('be.visible')
+            .first()
+            .should('be.visible')
             .click()
-  
+
           cy.get('.item').should('have.length', 1)
         })
-  
-        // Since the API is external,
-        // I can't control what it will provide to the frontend,
-        // and so, how can I test ordering?
-        // This is why these tests are being skipped.
-        // TODO: Find a way to test them out.
-        context.skip('Order by', () => {
-          it('orders by title', () => {})
-  
-          it('orders by author', () => {})
-  
-          it('orders by comments', () => {})
-  
-          it('orders by points', () => {})
+
+        context('Order by', () => {
+          it('orders by title', () => {
+            cy.get('.list-header-button:contains(Title)')
+              .should('be.visible')
+              .click()
+            cy.get(`.item a:contains(${stories.hits[0].title})`)
+              .should('be.visible')
+              .should('have.attr', 'href', stories.hits[0].url)
+
+            cy.get('.list-header-button:contains(Title)').should('be.visible')
+              .click()
+            cy.get(`.item a:contains(${stories.hits[1].title})`)
+              .should('have.attr', 'href', stories.hits[1].url)
+          })
+
+          it('orders by author', () => {
+            cy.get('.list-header-button:contains(Author)')
+              .click()
+            cy.get(`.item:contains(${stories.hits[0].author})`).should('contain', stories.hits[0].author)
+
+            cy.get('.list-header-button:contains(Author)')
+              .click()
+            cy.get(`.item:contains(${stories.hits[1].author})`).should('contain', stories.hits[1].author)
+          })
+
+          it('orders by comments', () => {
+            cy.get('.list-header-button:contains(Comments)')
+              .click()
+
+            cy.get('.item')
+              .first()
+              .should('be.visible')
+              .and('contain', stories.hits[0].num_comments)
+
+            cy.get('.list-header-button:contains(Comments)')
+              .click()
+
+            cy.get('.item')
+              .first()
+              .should('be.visible')
+              .and('contain', stories.hits[1].num_comments)
+          })
+
+          it('orders by points', () => {
+            cy.get('.list-header-button:contains(Points)')
+              .click()
+
+            cy.get('.item')
+              .first()
+              .should('be.visible')
+              .and('contain', stories.hits[1].points)
+
+            cy.get('.list-header-button:contains(Points)')
+              .click()
+
+            cy.get('.item')
+              .first()
+              .should('be.visible')
+              .and('contain', stories.hits[0].points)
+          })
         })
-  
+
         // Hrm, how would I simulate such errors?
         // Since I still don't know, the tests are being skipped.
         // TODO: Find a way to test them out.
         context.skip('Errors', () => {
-          it('shows "Something went wrong ..." in case of a server error', () => {})
-  
-          it('shows "Something went wrong ..." in case of a network error', () => {})
+          it('shows "Something went wrong ..." in case of a server error', () => { })
+
+          it('shows "Something went wrong ..." in case of a network error', () => { })
         })
       })
     })
-    
+
     context('Search', () => {
       beforeEach(() => {
         cy.intercept(
-          'GET', 
+          'GET',
           `**/search?query=${initialTerm}&page=0`,
           { fixture: 'empty' })
           .as('getEmpty')
 
         cy.intercept(
-          'GET', 
+          'GET',
           `**/search?query=${newTerm}&page=0`,
           { fixture: 'stories' })
           .as('getStories')
@@ -156,53 +210,74 @@ describe('Hacker Stories', () => {
         cy.visit('/')
         cy.wait('@getEmpty')
 
-        cy.get('#search')
+        cy.get('#search').should('be.visible')
           .clear()
       })
 
+      it('shows no story when none is returned', () => {
+        cy.get('.item').should('not.exist')
+      })
+
       it('types and hits ENTER', () => {
-        cy.get('#search')
+        cy.get('#search').should('be.visible')
           .type(`${newTerm}{enter}`)
 
         cy.wait('@getStories')
 
-        cy.get('.item').should('have.length', 2)
+        cy.getLocalStorage('search').should('be.equal', newTerm)
+
+        cy.get('.item').should('be.visible')
+          .should('have.length', 2)
         cy.get(`button:contains(${initialTerm})`)
           .should('be.visible')
       })
 
       it('types and clicks the submit button', () => {
-        cy.get('#search')
+        cy.get('#search').should('be.visible')
           .type(newTerm)
-        cy.contains('Submit')
+        cy.contains('Submit').should('be.visible')
           .click()
 
         cy.wait('@getStories')
+        cy.getLocalStorage('search').should('be.equal', newTerm)
 
-        cy.get('.item').should('have.length', 2)
+        cy.get('.item').should('be.visible')
+          .should('have.length', 2)
         cy.get(`button:contains(${initialTerm})`)
           .should('be.visible')
       })
+
 
       context('Last searches', () => {
         it('shows a max of 5 buttons for the last searched terms', () => {
           const faker = require('faker')
 
           cy.intercept(
-            'GET', 
+            'GET',
             '**/search**',
             { fixture: 'empty' })
             .as('getfaker')
 
           Cypress._.times(6, () => {
+            const randamWord = faker.random.word()
             cy.get('#search')
+              .should('be.visible')
               .clear()
-              .type(`${faker.random.word()}{enter}`)
+              .type(`${randamWord}{enter}`)
+
             cy.wait('@getfaker')
+            cy.getLocalStorage('search').should('be.equal', randamWord)
           })
 
-          cy.get('.last-searches button')
-            .should('have.length', 5)
+
+          //cy.get('.last-searches button')
+          //  .should('have.length', 5)
+          //Outra forma de verificar em caso de seletor grande, a patir desse elemento encontra todos os botões.
+          cy.get('.last-searches')
+            .within(() => {
+              cy.get('button')
+                .should('have.length', 5)
+            })
         })
       })
     })
@@ -237,4 +312,24 @@ describe('Hacker Stories', () => {
       })
     })
   })
+
+  it('shows a "Loading ..." state before showing the results', () => {
+    cy.intercept(
+      'GET',
+      `**/search**`,
+      {
+        delay: 3000,
+        fixture: 'stories'
+      })
+      .as('getDelayStories')
+
+    cy.visit('/')
+    cy.assertLoadingIsShownAndHidden()
+    
+    cy.wait('@getDelayStories')
+
+    cy.get('.item').should('have.length', 2)
+  })
+
+
 })
